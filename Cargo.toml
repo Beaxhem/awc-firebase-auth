@@ -1,5 +1,6 @@
 [package]
-name = "firebase_rs"
+name = "awc-firebase-auth"
+author = "Beaxhem"
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/Beaxhem/firebase_rs"
