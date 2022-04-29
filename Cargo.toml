@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/Beaxhem/firebase_rs"
 description = "Simple package for handling Firebase authorization with AWC client"
+license = "MIT"
+license-file = "LICENSE.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
