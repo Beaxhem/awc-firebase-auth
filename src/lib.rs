@@ -1,8 +1,11 @@
 pub mod error;
 mod model;
+pub mod oauth;
 
 use awc::{Client, http::StatusCode};
-use crate::{error::{ErrorContainer, LoginError, RegisterError}, model::{LoginResponse, RegisterResponse, LoginBody}};
+use oauth::model::{OAuthToken, SignInWithIdpResponse};
+use crate::{error::{ErrorContainer, LoginError, RegisterError}, model::{LoginResponse, RegisterResponse, LoginBody}, oauth::model::SignInWithIdpBody};
+
 
 #[derive(Clone)]
 pub struct Firebase {
@@ -84,6 +87,43 @@ impl Firebase {
 
 impl Firebase {
 
+    pub async fn sign_in_with_idp<'a>(&self, request_uri: &'a str, token: &OAuthToken) -> Result<SignInWithIdpResponse, LoginError> {
+        let url = self.sign_in_oauth_url();
+        let body = SignInWithIdpBody {
+            request_uri,
+            post_body: token.to_string(),
+            return_secure_token: true,
+            return_idp_credential: true,
+        };
+
+        let mut response = self.client.post(url.as_str())
+            .send_json(&body)
+            .await
+            .map_err(|_| LoginError::Unknown)?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let body = response.json::<SignInWithIdpResponse>().await.unwrap();
+                Ok(body)
+            },
+            _ => {
+                match response.json::<ErrorContainer>().await {
+                    Ok(error) => Err(error.error.login_error()),
+                    Err(_) => Err(LoginError::Unknown)
+                }
+            }
+        }
+
+    }
+
+}
+
+impl Firebase {
+
+    fn sign_in_oauth_url(&self) -> String {
+        format!("{}/accounts:signInWithIdp?key={}", self.base_url, self.auth_token)
+    }
+
     fn sign_in_url(&self) -> String {
         format!("{}/accounts:signInWithPassword?key={}", self.base_url, self.auth_token)
     }
@@ -93,3 +133,4 @@ impl Firebase {
     }
 
 }
+

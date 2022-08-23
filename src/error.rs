@@ -1,6 +1,7 @@
 use std::fmt;
 use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize)]
 pub enum LoginError {
     EmailNotFound,
     InvalidPassword,
@@ -15,7 +16,8 @@ pub enum RegisterError {
     EmailExists,
     OperationNotAllowed,
     TooManyAttempts,
-    Unknown
+    Unknown,
+    MissingPassword
 }
 
 
@@ -42,6 +44,7 @@ impl fmt::Display for RegisterError {
             RegisterError::OperationNotAllowed => write!(f, "Operation not allowed"),
             RegisterError::TooManyAttempts => write!(f, "Too many attempts"),
             RegisterError::Unknown => write!(f, "Unknown"),
+            RegisterError::MissingPassword => write!(f, "Missing password"),
         }
     }
 
