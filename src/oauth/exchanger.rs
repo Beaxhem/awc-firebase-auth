@@ -2,27 +2,23 @@ use std::collections::HashMap;
 
 use awc::{Client, ClientRequest};
 
-use super::model::{OAuthToken, FacebookOAuthToken, GoogleOAuthToken, Provider};
+use super::{model::{OAuthToken, FacebookOAuthToken, GoogleOAuthToken, Provider}, error::CodeExhangeError};
 
 pub struct FacebookCodeExchanger { }
 
 impl FacebookCodeExchanger {
 
-    pub async fn exchange(client: &Client, code: &String, info: HashMap<&str, &str>) -> Result<OAuthToken, String> {
-        let url = match Self::build_url(code, info) {
-            Some(url) => url,
-            None => return Err(format!("URL can't be built"))
-        };
+    pub async fn exchange(client: &Client, code: &String, info: &HashMap<&str, &str>) -> Result<OAuthToken, CodeExhangeError> {
+        let url = Self::build_url(code, info)?;
+
         let mut response = client.get(url)
             .send()
             .await
-            .map_err(|_| format!("Unknown error"))?;
+            .map_err(|err| CodeExhangeError::SendRequestError(err))?;
 
-        let json = response.json::<FacebookOAuthToken>().await;
-        let token = match json {
-            Ok(token) => token.access_token,
-            Err(err) => return Err(format!("Decoding error: {}", err))
-        };
+        let token = response.json::<FacebookOAuthToken>().await
+            .map_err(|err| CodeExhangeError::DecodingError(err))?
+            .access_token;
 
         Ok(OAuthToken {
             token,
@@ -33,30 +29,21 @@ impl FacebookCodeExchanger {
 
 impl FacebookCodeExchanger {
 
-    fn build_url(code: &String, info: HashMap<&str, &str>) -> Option<String> {
+    fn build_url(code: &String, info: &HashMap<&str, &str>) -> Result<String, CodeExhangeError> {
         let client_id = match info.get("client_id") {
             Some(client_id) => client_id,
-            None => {
-                println!("'client_id' key is not found");
-                return None
-            },
+            None => return Err(CodeExhangeError::ParamError("client_id")),
         };
         let client_secret = match info.get("client_secret") {
             Some(client_secret) => client_secret,
-            None => {
-                println!("'client_secret' key is not found");
-                return None
-            },
+            None => return Err(CodeExhangeError::ParamError("client_secret")),
         };
         let redirect_uri = match info.get("redirect_uri") {
             Some(redirect_uri) => redirect_uri,
-            None => {
-                println!("'redirect_uri' key is not found");
-                return None
-            },
+            None => return Err(CodeExhangeError::ParamError("redirect_uri")),
         };
-        Some(format!("https://graph.facebook.com/v14.0/oauth/access_token?client_secret={}&code={}&client_id={}&redirect_uri={}", client_secret, code, client_id, redirect_uri))
 
+        Ok(format!("https://graph.facebook.com/v14.0/oauth/access_token?client_secret={}&code={}&client_id={}&redirect_uri={}", client_secret, code, client_id, redirect_uri))
     }
 
 }
@@ -66,21 +53,16 @@ pub struct GoogleCodeExchanger { }
 
 impl GoogleCodeExchanger {
 
-    pub async fn exchange(client: &Client, code: &String, info: HashMap<&str, &str>) -> Result<OAuthToken, String> {
-        let body = match Self::build_body(code, info) {
-            Some(body) => body,
-            None => return Err(format!("Body could not be built"))
-        };
+    pub async fn exchange(client: &Client, code: &String, info: &HashMap<&str, &str>) -> Result<OAuthToken, CodeExhangeError> {
+        let body = Self::build_body(code, info)?;
         let mut response = Self::build_request(client)
             .send_body(body)
             .await
-            .map_err(|_| format!("Unknown error"))?;
+            .map_err(|err| CodeExhangeError::SendRequestError(err))?;
 
-        let json = response.json::<GoogleOAuthToken>().await;
-        let token = match json {
-            Ok(token) => token.id_token,
-            Err(err) => return Err(format!("Error while decoding: {}", err))
-        };
+        let token = response.json::<GoogleOAuthToken>().await
+            .map_err(|err| CodeExhangeError::DecodingError(err))?
+            .id_token;
 
         Ok(OAuthToken {
             token,
@@ -102,23 +84,17 @@ impl GoogleCodeExchanger {
         format!("https://oauth2.googleapis.com/token")
     }
 
-    fn build_body(code: &String, info: HashMap<&str, &str>) -> Option<String> {
+    fn build_body(code: &String, info: &HashMap<&str, &str>) -> Result<String, CodeExhangeError> {
         let client_id = match info.get("client_id") {
             Some(client_id) => client_id,
-            None => {
-                println!("'client_id' key is not found");
-                return None
-            },
+            None => return Err(CodeExhangeError::ParamError("client_id"))
         };
         let redirect_uri = match info.get("redirect_uri") {
             Some(redirect_uri) => redirect_uri,
-            None => {
-                println!("'redirect_uri' key is not found");
-                return None
-            },
+            None => return Err(CodeExhangeError::ParamError("redirect_uri"))
         }; 
         let grant_type = "authorization_code";
-        Some(format!("code={}&client_id={}&redirect_uri={}&grant_type={}", code, client_id, redirect_uri, grant_type))
+        Ok(format!("code={}&client_id={}&redirect_uri={}&grant_type={}", code, client_id, redirect_uri, grant_type))
     }
 
 }

@@ -1,7 +1,7 @@
 use std::fmt;
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum LoginError {
     EmailNotFound,
     InvalidPassword,
@@ -12,6 +12,7 @@ pub enum LoginError {
     Unknown
 }
 
+#[derive(Debug)]
 pub enum RegisterError {
     EmailExists,
     OperationNotAllowed,

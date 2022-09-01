@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::Firebase;
 
-use super::exchanger::{GoogleCodeExchanger, FacebookCodeExchanger};
+use super::{exchanger::{GoogleCodeExchanger, FacebookCodeExchanger}, error::CodeExhangeError};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,7 +24,7 @@ pub struct SignInWithIdpResponse {
     pub local_id: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone, Copy)]
 pub enum Provider {
     Facebook,
     Google,
@@ -91,19 +91,33 @@ impl OAuthToken {
 }
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct OAuthCode {
     pub code: String,
     pub provider: Provider,
 }
 
-impl OAuthCode {
+pub struct OAuthCodeExchanger {
+    pub code: OAuthCode,
+}
 
-    pub async fn exchange_for_access_token(&self, info: HashMap<&str, &str>, client: &Firebase) -> Result<OAuthToken, String> {
-        match self.provider {
-            Provider::Google => GoogleCodeExchanger::exchange(&client.client, &self.code, info).await,
-            Provider::Facebook => FacebookCodeExchanger::exchange(&client.client, &self.code, info).await,
-            _ => Err(format!("Unsupported provider {}", self.provider))
+impl OAuthCodeExchanger {
+
+    pub fn new(code: &OAuthCode) -> Self {
+        OAuthCodeExchanger { 
+            code: code.clone(),
+        }
+    }
+
+}
+
+impl OAuthCodeExchanger {
+
+    pub async fn exchange_for_access_token(&self, info: &HashMap<&'static str, &'static str>, client: &Firebase) -> Result<OAuthToken, CodeExhangeError> {
+        match self.code.provider {
+            Provider::Google => GoogleCodeExchanger::exchange(&client.client, &self.code.code, info).await,
+            Provider::Facebook => FacebookCodeExchanger::exchange(&client.client, &self.code.code, info).await,
+            _ => Err(CodeExhangeError::UnsupportedProvider(self.code.provider)),
         }
     }
 
