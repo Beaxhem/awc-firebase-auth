@@ -1,15 +1,14 @@
+use serde::{Deserialize, Serialize};
 use std::fmt;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LoginError {
     EmailNotFound,
     InvalidPassword,
     UserDisabled,
-    EmailExists,
     OperationNotAllowed,
     TooManyAttempts,
-    Unknown
+    Unknown,
 }
 
 #[derive(Debug)]
@@ -18,19 +17,16 @@ pub enum RegisterError {
     OperationNotAllowed,
     TooManyAttempts,
     Unknown,
-    MissingPassword
+    MissingPassword,
 }
 
-
 impl fmt::Display for LoginError {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             LoginError::EmailNotFound => write!(f, "Email not found"),
             LoginError::InvalidPassword => write!(f, "Invalid password"),
             LoginError::UserDisabled => write!(f, "User disabled"),
-            LoginError::EmailExists => write!(f, "Email exists"),
-            LoginError::OperationNotAllowed => write!(f, "Operation not allowed"),        
+            LoginError::OperationNotAllowed => write!(f, "Operation not allowed"),
             LoginError::TooManyAttempts => write!(f, "Too many attempts"),
             LoginError::Unknown => write!(f, "Unknown"),
         }
@@ -38,7 +34,6 @@ impl fmt::Display for LoginError {
 }
 
 impl fmt::Display for RegisterError {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             RegisterError::EmailExists => write!(f, "Email exists"),
@@ -48,7 +43,6 @@ impl fmt::Display for RegisterError {
             RegisterError::MissingPassword => write!(f, "Missing password"),
         }
     }
-
 }
 
 #[derive(Serialize, Deserialize)]
@@ -85,7 +79,6 @@ impl Error {
             "EMAIL_NOT_FOUND" => LoginError::EmailNotFound,
             "INVALID_PASSWORD" => LoginError::InvalidPassword,
             "USER_DISABLED" => LoginError::UserDisabled,
-            "EMAIL_EXISTS" => LoginError::EmailExists,
             "OPERATION_NOT_ALLOWED" => LoginError::OperationNotAllowed,
             "TOO_MANY_ATTEMPTS_TRY_LATER" => LoginError::TooManyAttempts,
             _ => LoginError::Unknown,
