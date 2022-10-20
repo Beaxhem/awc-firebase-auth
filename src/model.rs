@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
@@ -17,7 +17,7 @@ pub struct LoginResponse {
     pub registered: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterResponse {
     pub kind: String,
     #[serde(rename = "localId")]
@@ -40,7 +40,6 @@ pub struct LoginBody {
 }
 
 impl LoginBody {
-
     pub fn new(email: String, password: String) -> LoginBody {
         LoginBody {
             email,
@@ -48,5 +47,12 @@ impl LoginBody {
             return_secure_token: true,
         }
     }
+}
 
+#[derive(Serialize)]
+pub(crate) struct FirebaseRequest {
+    #[serde(rename = "requestType")]
+    pub request_type: String,
+    #[serde(rename = "idToken")]
+    pub id_token: String,
 }

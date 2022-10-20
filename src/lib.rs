@@ -2,14 +2,16 @@ pub mod error;
 mod model;
 pub mod oauth;
 
+pub use model::RegisterResponse;
 use std::sync::Arc;
 
 use crate::{
     error::{ErrorContainer, LoginError, RegisterError},
-    model::{LoginBody, LoginResponse, RegisterResponse},
+    model::{LoginBody, LoginResponse},
     oauth::model::SignInWithIdpBody,
 };
-use awc::{http::StatusCode, Client};
+use awc::{error::SendRequestError, http::StatusCode, Client};
+use model::FirebaseRequest;
 use oauth::model::{OAuthToken, SignInWithIdpResponse};
 
 #[derive(Clone)]
@@ -120,6 +122,18 @@ impl Firebase {
 }
 
 impl Firebase {
+    pub async fn send_verification_email(&self, token: String) -> Result<(), SendRequestError> {
+        let url = self.send_verification_email_url();
+        let body = FirebaseRequest {
+            request_type: "VERIFY_EMAIL".to_owned(),
+            id_token: token,
+        };
+
+        self.client.post(url).send_json(&body).await.map(|_| ())
+    }
+}
+
+impl Firebase {
     fn sign_in_oauth_url(&self) -> String {
         format!(
             "{}/accounts:signInWithIdp?key={}",
@@ -136,5 +150,12 @@ impl Firebase {
 
     fn sign_up_url(&self) -> String {
         format!("{}/accounts:signUp?key={}", self.base_url, self.auth_token)
+    }
+
+    fn send_verification_email_url(&self) -> String {
+        format!(
+            "{}/accounts:sendOobCode?key={}",
+            self.base_url, self.auth_token
+        )
     }
 }
