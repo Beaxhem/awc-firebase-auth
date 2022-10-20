@@ -2,6 +2,7 @@ pub mod error;
 mod model;
 pub mod oauth;
 
+use error::AccountError;
 pub use model::RegisterResponse;
 use std::sync::Arc;
 
@@ -10,7 +11,7 @@ use crate::{
     model::{LoginBody, LoginResponse},
     oauth::model::SignInWithIdpBody,
 };
-use awc::{error::SendRequestError, http::StatusCode, Client};
+use awc::{http::StatusCode, Client};
 use model::FirebaseRequest;
 use oauth::model::{OAuthToken, SignInWithIdpResponse};
 
@@ -122,14 +123,27 @@ impl Firebase {
 }
 
 impl Firebase {
-    pub async fn send_verification_email(&self, token: String) -> Result<(), SendRequestError> {
+    pub async fn send_verification_email(&self, token: String) -> Result<(), AccountError> {
         let url = self.send_verification_email_url();
         let body = FirebaseRequest {
             request_type: "VERIFY_EMAIL".to_owned(),
             id_token: token,
         };
 
-        self.client.post(url).send_json(&body).await.map(|_| ())
+        let mut response = self
+            .client
+            .post(url)
+            .send_json(&body)
+            .await
+            .map_err(|_| AccountError::Unknown)?;
+
+        match response.status() {
+            StatusCode::OK => Ok(()),
+            _ => match response.json::<ErrorContainer>().await {
+                Ok(error) => Err(error.error.account_error()),
+                Err(_) => Err(AccountError::Unknown),
+            },
+        }
     }
 }
 

@@ -11,15 +11,6 @@ pub enum LoginError {
     Unknown,
 }
 
-#[derive(Debug)]
-pub enum RegisterError {
-    EmailExists,
-    OperationNotAllowed,
-    TooManyAttempts,
-    Unknown,
-    MissingPassword,
-}
-
 impl fmt::Display for LoginError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -33,6 +24,15 @@ impl fmt::Display for LoginError {
     }
 }
 
+#[derive(Debug)]
+pub enum RegisterError {
+    EmailExists,
+    OperationNotAllowed,
+    TooManyAttempts,
+    Unknown,
+    MissingPassword,
+}
+
 impl fmt::Display for RegisterError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -41,6 +41,23 @@ impl fmt::Display for RegisterError {
             RegisterError::TooManyAttempts => write!(f, "Too many attempts"),
             RegisterError::Unknown => write!(f, "Unknown"),
             RegisterError::MissingPassword => write!(f, "Missing password"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum AccountError {
+    InvalidIdToken,
+    UserNotFound,
+    Unknown,
+}
+
+impl fmt::Display for AccountError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            AccountError::InvalidIdToken => write!(f, "Invalid Id token"),
+            AccountError::UserNotFound => write!(f, "User not found"),
+            AccountError::Unknown => write!(f, "Unknown error"),
         }
     }
 }
@@ -82,6 +99,14 @@ impl Error {
             "OPERATION_NOT_ALLOWED" => LoginError::OperationNotAllowed,
             "TOO_MANY_ATTEMPTS_TRY_LATER" => LoginError::TooManyAttempts,
             _ => LoginError::Unknown,
+        }
+    }
+
+    pub fn account_error(&self) -> AccountError {
+        match self.message.as_str() {
+            "INVALID_ID_TOKEN" => AccountError::InvalidIdToken,
+            "USER_NOT_FOUND" => AccountError::UserNotFound,
+            _ => AccountError::Unknown,
         }
     }
 }
