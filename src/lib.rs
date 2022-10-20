@@ -148,6 +148,31 @@ impl Firebase {
 }
 
 impl Firebase {
+    pub async fn delete_account(&self, token: String) -> Result<(), AccountError> {
+        let url = self.delete_account_url();
+        let body = FirebaseRequest {
+            request_type: "DELETE_ACCOUNT".to_owned(),
+            id_token: token,
+        };
+
+        let mut response = self
+            .client
+            .post(url)
+            .send_json(&body)
+            .await
+            .map_err(|_| AccountError::Unknown)?;
+
+        match response.status() {
+            StatusCode::OK => Ok(()),
+            _ => match response.json::<ErrorContainer>().await {
+                Ok(error) => Err(error.error.account_error()),
+                Err(_) => Err(AccountError::Unknown),
+            },
+        }
+    }
+}
+
+impl Firebase {
     fn sign_in_oauth_url(&self) -> String {
         format!(
             "{}/accounts:signInWithIdp?key={}",
@@ -171,5 +196,9 @@ impl Firebase {
             "{}/accounts:sendOobCode?key={}",
             self.base_url, self.auth_token
         )
+    }
+
+    fn delete_account_url(&self) -> String {
+        format!("{}/accounts:delete?key={}", self.base_url, self.auth_token)
     }
 }
