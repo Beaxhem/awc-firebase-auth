@@ -62,6 +62,29 @@ impl fmt::Display for AccountError {
     }
 }
 
+#[derive(Debug)]
+pub enum RefreshTokenError {
+    TokenExpired,
+    UserDisabled,
+    UserNotFound,
+    InvalidRefreshToken,
+    InvalidGrantType,
+    Unknown,
+}
+
+impl fmt::Display for RefreshTokenError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            RefreshTokenError::TokenExpired => write!(f, "TOKEN_EXPIRED"),
+            RefreshTokenError::UserDisabled => write!(f, "USER_DISABLED"),
+            RefreshTokenError::UserNotFound => write!(f, "USER_NOT_FOUND"),
+            RefreshTokenError::InvalidRefreshToken => write!(f, "INVALID_REFRESH_TOKEN"),
+            RefreshTokenError::InvalidGrantType => write!(f, "INVALID_GRANT_TYPE"),
+            RefreshTokenError::Unknown => write!(f, "Unknown error"),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 struct ErrorBody {
     domain: String,
@@ -107,6 +130,17 @@ impl Error {
             "INVALID_ID_TOKEN" => AccountError::InvalidIdToken,
             "USER_NOT_FOUND" => AccountError::UserNotFound,
             _ => AccountError::Unknown,
+        }
+    }
+
+    pub fn refresh_token_error(&self) -> RefreshTokenError {
+        match self.message.as_str() {
+            "TOKEN_EXPIRED" => RefreshTokenError::InvalidGrantType,
+            "USER_DISABLED" => RefreshTokenError::UserDisabled,
+            "USER_NOT_FOUND" => RefreshTokenError::UserNotFound,
+            "INVALID_REFRESH_TOKEN" => RefreshTokenError::InvalidRefreshToken,
+            "INVALID_GRANT_TYPE" => RefreshTokenError::InvalidGrantType,
+            _ => RefreshTokenError::Unknown,
         }
     }
 }

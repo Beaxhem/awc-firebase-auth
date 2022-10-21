@@ -25,6 +25,7 @@ pub struct SignInWithIdpResponse {
     pub full_name: String,
     pub email: String,
     pub local_id: String,
+    pub refresh_token: String,
 }
 
 #[derive(Debug, Serialize, Clone, Copy)]

@@ -2,7 +2,7 @@ pub mod error;
 mod model;
 pub mod oauth;
 
-use error::AccountError;
+use error::{AccountError, RefreshTokenError};
 pub use model::RegisterResponse;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ use crate::{
     oauth::model::SignInWithIdpBody,
 };
 use awc::{http::StatusCode, Client};
-use model::FirebaseRequest;
+use model::{FirebaseRequest, RefreshedIdToken};
 use oauth::model::{OAuthToken, SignInWithIdpResponse};
 
 #[derive(Clone)]
@@ -173,6 +173,34 @@ impl Firebase {
 }
 
 impl Firebase {
+    pub async fn exchange_refresh_token(
+        &self,
+        refresh_token: String,
+    ) -> Result<RefreshedIdToken, RefreshTokenError> {
+        let url = self.exchange_refresh_token_url();
+        let body = format!("grant_type=refresh_token&refresh_token={refresh_token}");
+
+        let mut response = self
+            .client
+            .post(url)
+            .insert_header(("Content-Type", "application/x-www-form-urlencoded"))
+            .send_body(body)
+            .await
+            .map_err(|_| RefreshTokenError::Unknown)?;
+        match response.status() {
+            StatusCode::OK => match response.json::<RefreshedIdToken>().await {
+                Ok(token) => Ok(token),
+                Err(_) => Err(RefreshTokenError::Unknown),
+            },
+            _ => match response.json::<ErrorContainer>().await {
+                Ok(err) => Err(err.error.refresh_token_error()),
+                Err(_) => Err(RefreshTokenError::Unknown),
+            },
+        }
+    }
+}
+
+impl Firebase {
     fn sign_in_oauth_url(&self) -> String {
         format!(
             "{}/accounts:signInWithIdp?key={}",
@@ -200,5 +228,12 @@ impl Firebase {
 
     fn delete_account_url(&self) -> String {
         format!("{}/accounts:delete?key={}", self.base_url, self.auth_token)
+    }
+
+    fn exchange_refresh_token_url(&self) -> String {
+        format!(
+            "https://securetoken.googleapis.com/v1/token?key={}",
+            self.auth_token
+        )
     }
 }

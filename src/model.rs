@@ -56,3 +56,13 @@ pub(crate) struct FirebaseRequest {
     #[serde(rename = "idToken")]
     pub id_token: String,
 }
+
+#[derive(Deserialize)]
+pub struct RefreshedIdToken {
+    pub expires_in: String,
+    pub token_type: String,
+    pub refresh_token: String,
+    pub id_token: String,
+    pub user_id: String,
+    pub project_id: String,
+}
