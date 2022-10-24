@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{self, Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display};
 
 use crate::Firebase;
@@ -17,12 +17,11 @@ pub struct SignInWithIdpBody<'a> {
     pub return_idp_credential: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SignInWithIdpResponse {
-    pub first_name: String,
-    pub last_name: String,
-    pub full_name: String,
+    #[serde(default)]
+    pub full_name: Option<String>,
     pub email: String,
     pub local_id: String,
     pub refresh_token: String,
@@ -76,15 +75,19 @@ pub struct GoogleOAuthToken {
     pub id_token: String,
 }
 
+#[derive(Deserialize, Debug)]
 pub struct OAuthToken {
     pub token: String,
     pub provider: Provider,
+
+    #[serde(default)]
+    pub nonce: Option<String>,
 }
 
 impl Display for OAuthToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.provider {
-            Provider::Google | Provider::Apple => write!(
+            Provider::Google => write!(
                 f,
                 "id_token={}&providerId={}",
                 self.token,
@@ -95,6 +98,13 @@ impl Display for OAuthToken {
                 "access_token={}&providerId={}",
                 self.token,
                 self.provider.provider_id()
+            ),
+            Provider::Apple => write!(
+                f,
+                "id_token={}&providerId={}&nonce={}",
+                self.token,
+                self.provider.provider_id(),
+                self.nonce.clone().unwrap_or_else(|| "".to_owned())
             ),
         }
     }

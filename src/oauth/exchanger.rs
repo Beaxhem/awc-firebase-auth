@@ -32,6 +32,7 @@ impl FacebookCodeExchanger {
         Ok(OAuthToken {
             token,
             provider: Provider::Facebook,
+            nonce: None,
         })
     }
 }
@@ -78,6 +79,7 @@ impl GoogleCodeExchanger {
         Ok(OAuthToken {
             token,
             provider: Provider::Google,
+            nonce: None,
         })
     }
 }
